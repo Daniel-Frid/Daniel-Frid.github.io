@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "se.evigutveckling.evig",
+      "sha256_cert_fingerprints":
+        ["55:4E:ED:33:DE:9B:FF:16:C5:2E:74:A9:8E:93:55:A9:7E:E8:B8:44:CD:F0:A0:C3:35:67:27:51:9A:DB:74:28",
+          "69:26:49:7C:54:29:C2:59:73:B6:1F:15:E6:68:E5:B2:08:AE:1F:BE:C8:76:33:FD:67:F9:07:56:2B:7F:D3:C8",
+        "45:FF:72:CB:E6:29:5E:66:9C:A1:A2:BA:50:5A:AD:F7:EB:92:B9:8B:C6:48:E9:63:1D:BB:06:40:DA:22:39:8E"]
+    }
+  }
+]
