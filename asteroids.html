@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asteroid Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { background: black; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        // Get canvas and context
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Track keyboard input
+        const keys = {};
+        window.addEventListener('keydown', (e) => { keys[e.key] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.key] = false; });
+
+        // Ship class
+        class Ship {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0; // Velocity X
+                this.vy = 0; // Velocity Y
+                this.angle = 0; // Facing direction in radians
+                this.thrust = 200; // Acceleration in pixels per second squared
+                this.radius = 15; // For collision detection
+            }
+            update(deltaTime) {
+                // Rotate left or right
+                if (keys['ArrowLeft']) this.angle -= 5 * (deltaTime / 1000);
+                if (keys['ArrowRight']) this.angle += 5 * (deltaTime / 1000);
+                // Thrust forward
+                if (keys['ArrowUp']) {
+                    this.vx += Math.cos(this.angle) * this.thrust * (deltaTime / 1000);
+                    this.vy += Math.sin(this.angle) * this.thrust * (deltaTime / 1000);
+                }
+                // Update position
+                this.x += this.vx * (deltaTime / 1000);
+                this.y += this.vy * (deltaTime / 1000);
+                // Screen wrapping
+                if (this.x < 0) this.x += canvas.width;
+                if (this.x > canvas.width) this.x -= canvas.width;
+                if (this.y < 0) this.y += canvas.height;
+                if (this.y > canvas.height) this.y -= canvas.height;
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                ctx.beginPath();
+                ctx.moveTo(10, 0); // Tip
+                ctx.lineTo(-10, -5); // Left wing
+                ctx.lineTo(-10, 5); // Right wing
+                ctx.closePath();
+                ctx.fillStyle = 'white';
+                ctx.fill();
+                ctx.restore();
+            }
+            shoot() {
+                const laserSpeed = 300; // Pixels per second
+                const vx = Math.cos(this.angle) * laserSpeed;
+                const vy = Math.sin(this.angle) * laserSpeed;
+                lasers.push(new Laser(this.x, this.y, vx, vy));
+            }
+        }
+
+        // Asteroid class
+        class Asteroid {
+            constructor(x, y, size) {
+                this.x = x;
+                this.y = y;
+                this.size = size; // 3 = large, 2 = medium, 1 = small
+                this.radius = size * 10;
+                const speed = (4 - size) * 50; // Smaller = faster
+                const angle = Math.random() * 2 * Math.PI;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.isDestroyed = false;
+            }
+            update(deltaTime) {
+                this.x += this.vx * (deltaTime / 1000);
+                this.y += this.vy * (deltaTime / 1000);
+                // Screen wrapping
+                if (this.x < 0) this.x += canvas.width;
+                if (this.x > canvas.width) this.x -= canvas.width;
+                if (this.y < 0) this.y += canvas.height;
+                if (this.y > canvas.height) this.y -= canvas.height;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'white';
+                ctx.stroke();
+            }
+        }
+
+        // Laser class
+        class Laser {
+            constructor(x, y, vx, vy) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.lifespan = 2; // Seconds
+                this.isDestroyed = false;
+            }
+            update(deltaTime) {
+                this.x += this.vx * (deltaTime / 1000);
+                this.y += this.vy * (deltaTime / 1000);
+                this.lifespan -= deltaTime / 1000;
+                if (this.lifespan <= 0) this.isDestroyed = true;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - this.vx * 0.01, this.y - this.vy * 0.01);
+                ctx.strokeStyle = 'red';
+                ctx.stroke();
+            }
+        }
+
+        // Collision detection function
+        function checkCollision(obj1, obj2) {
+            const dx = obj1.x - obj2.x;
+            const dy = obj1.y - obj2.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            return distance < obj1.radius + obj2.radius;
+        }
+
+        // Game state variables
+        let ship, asteroids = [], lasers = [];
+        let score = 0, lives = 3, wave = 1, gameOver = false;
+        let lastTime = 0;
+        let canShoot = true;
+        const shootCooldown = 0.5; // Seconds
+
+        // Initialize or reset the game
+        function resetGame() {
+            ship = new Ship(canvas.width / 2, canvas.height / 2);
+            asteroids = [];
+            lasers = [];
+            score = 0;
+            lives = 3;
+            wave = 1;
+            gameOver = false;
+            spawnAsteroids(wave);
+        }
+
+        // Spawn asteroids for a wave
+        function spawnAsteroids(wave) {
+            const numAsteroids = wave * 4;
+            for (let i = 0; i < numAsteroids; i++) {
+                let x, y;
+                // Spawn outside screen edges
+                if (Math.random() < 0.5) {
+                    x = Math.random() < 0.5 ? 0 : canvas.width;
+                    y = Math.random() * canvas.height;
+                } else {
+                    x = Math.random() * canvas.width;
+                    y = Math.random() < 0.5 ? 0 : canvas.height;
+                }
+                asteroids.push(new Asteroid(x, y, 3)); // Start with large asteroids
+            }
+        }
+
+        // Main game loop
+        function gameLoop(timestamp) {
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!gameOver) {
+                // Update game objects
+                ship.update(deltaTime);
+                asteroids.forEach(a => a.update(deltaTime));
+                lasers.forEach(l => l.update(deltaTime));
+
+                // Handle shooting with cooldown
+                if (keys[' '] && canShoot) {
+                    ship.shoot();
+                    canShoot = false;
+                    setTimeout(() => { canShoot = true; }, shootCooldown * 1000);
+                }
+
+                // Check collisions
+                lasers.forEach(laser => {
+                    asteroids.forEach(asteroid => {
+                        if (checkCollision(laser, asteroid)) {
+                            laser.isDestroyed = true;
+                            asteroid.isDestroyed = true;
+                            if (asteroid.size > 1) {
+                                // Split into two smaller asteroids
+                                for (let i = 0; i < 2; i++) {
+                                    const newSize = asteroid.size - 1;
+                                    const newAsteroid = new Asteroid(asteroid.x, asteroid.y, newSize);
+                                    newAsteroid.vx += (Math.random() - 0.5) * 50;
+                                    newAsteroid.vy += (Math.random() - 0.5) * 50;
+                                    asteroids.push(newAsteroid);
+                                }
+                            }
+                            score += 10 * (4 - asteroid.size); // More points for smaller asteroids
+                        }
+                    });
+                });
+
+                asteroids.forEach(asteroid => {
+                    if (checkCollision(ship, asteroid)) {
+                        lives--;
+                        if (lives <= 0) {
+                            gameOver = true;
+                        } else {
+                            // Reset ship position
+                            ship.x = canvas.width / 2;
+                            ship.y = canvas.height / 2;
+                            ship.vx = 0;
+                            ship.vy = 0;
+                        }
+                    }
+                });
+
+                // Remove destroyed objects
+                lasers = lasers.filter(l => !l.isDestroyed);
+                asteroids = asteroids.filter(a => !a.isDestroyed);
+
+                // Check for next wave
+                if (asteroids.length === 0) {
+                    wave++;
+                    spawnAsteroids(wave);
+                }
+
+                // Draw everything
+                ship.draw();
+                asteroids.forEach(a => a.draw());
+                lasers.forEach(l => l.draw());
+
+                // Draw UI
+                ctx.font = '20px Arial';
+                ctx.fillStyle = 'white';
+                ctx.fillText(`Score: ${score}`, 10, 30);
+                ctx.fillText(`Lives: ${lives}`, 10, 60);
+            } else {
+                // Game over screen
+                ctx.font = '30px Arial';
+                ctx.fillStyle = 'white';
+                ctx.fillText('Game Over', canvas.width / 2 - 70, canvas.height / 2);
+                ctx.fillText('Press R to restart', canvas.width / 2 - 100, canvas.height / 2 + 40);
+                if (keys['r']) {
+                    resetGame();
+                }
+            }
+
+            // Continue the loop
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        resetGame();
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
