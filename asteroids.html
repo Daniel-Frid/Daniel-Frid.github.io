@@ -189,6 +189,7 @@
 
                 // Handle shooting with cooldown
                 if (keys['s'] && canShoot) {
+                    console.log('Shooting!');
                     ship.shoot();
                     canShoot = false;
                     setTimeout(() => { canShoot = true; }, shootCooldown * 1000);
