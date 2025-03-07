@@ -185,7 +185,7 @@
                 lasers.forEach(l => l.update(deltaTime));
 
                 // Handle shooting with cooldown
-                if (keys[' '] && canShoot) {
+                if (keys['s'] && canShoot) {
                     ship.shoot();
                     canShoot = false;
                     setTimeout(() => { canShoot = true; }, shootCooldown * 1000);
