@@ -18,7 +18,10 @@
 
         // Track keyboard input
         const keys = {};
-        window.addEventListener('keydown', (e) => { keys[e.key] = true; });
+        window.addEventListener('keydown', (e) => {
+            console.log('Key pressed:', e.key);
+            keys[e.key] = true; 
+        });
         window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
         // Ship class
