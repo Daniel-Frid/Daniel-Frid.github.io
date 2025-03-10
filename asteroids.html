@@ -113,12 +113,19 @@
                 this.vy = vy;
                 this.lifespan = 2; // Seconds
                 this.isDestroyed = false;
+                this.radius = 2; // For collision detection
             }
             update(deltaTime) {
                 this.x += this.vx * (deltaTime / 1000);
                 this.y += this.vy * (deltaTime / 1000);
                 this.lifespan -= deltaTime / 1000;
                 if (this.lifespan <= 0) this.isDestroyed = true;
+                
+                // Screen wrapping for lasers
+                if (this.x < 0) this.x += canvas.width;
+                if (this.x > canvas.width) this.x -= canvas.width;
+                if (this.y < 0) this.y += canvas.height;
+                if (this.y > canvas.height) this.y -= canvas.height;
             }
             draw() {
                 ctx.beginPath();
@@ -158,7 +165,7 @@
 
         // Spawn asteroids for a wave
         function spawnAsteroids(wave) {
-            const numAsteroids = wave * 4;
+            const numAsteroids = wave * 2; // Reduced for testing
             for (let i = 0; i < numAsteroids; i++) {
                 let x, y;
                 // Spawn outside screen edges
@@ -175,7 +182,7 @@
 
         // Main game loop
         function gameLoop(timestamp) {
-            const deltaTime = timestamp - lastTime;
+            const deltaTime = timestamp - lastTime || 0;
             lastTime = timestamp;
 
             // Clear canvas
@@ -196,14 +203,16 @@
                 }
 
                 // Check collisions
-                lasers.forEach(laser => {
-                    asteroids.forEach(asteroid => {
+                for (let i = lasers.length - 1; i >= 0; i--) {
+                    const laser = lasers[i];
+                    for (let j = asteroids.length - 1; j >= 0; j--) {
+                        const asteroid = asteroids[j];
                         if (checkCollision(laser, asteroid)) {
                             laser.isDestroyed = true;
                             asteroid.isDestroyed = true;
                             if (asteroid.size > 1) {
                                 // Split into two smaller asteroids
-                                for (let i = 0; i < 2; i++) {
+                                for (let k = 0; k < 2; k++) {
                                     const newSize = asteroid.size - 1;
                                     const newAsteroid = new Asteroid(asteroid.x, asteroid.y, newSize);
                                     newAsteroid.vx += (Math.random() - 0.5) * 50;
@@ -212,12 +221,14 @@
                                 }
                             }
                             score += 10 * (4 - asteroid.size); // More points for smaller asteroids
+                            break;
                         }
-                    });
-                });
+                    }
+                }
 
-                asteroids.forEach(asteroid => {
-                    if (checkCollision(ship, asteroid)) {
+                // Check for ship collision with asteroids
+                for (let i = asteroids.length - 1; i >= 0; i--) {
+                    if (checkCollision(ship, asteroids[i])) {
                         lives--;
                         if (lives <= 0) {
                             gameOver = true;
@@ -228,8 +239,9 @@
                             ship.vx = 0;
                             ship.vy = 0;
                         }
+                        break;
                     }
-                });
+                }
 
                 // Remove destroyed objects
                 lasers = lasers.filter(l => !l.isDestroyed);
@@ -251,12 +263,15 @@
                 ctx.fillStyle = 'white';
                 ctx.fillText(`Score: ${score}`, 10, 30);
                 ctx.fillText(`Lives: ${lives}`, 10, 60);
+                ctx.fillText(`Wave: ${wave}`, 10, 90);
+                ctx.fillText(`Press SPACE to shoot`, canvas.width - 200, 30);
             } else {
                 // Game over screen
                 ctx.font = '30px Arial';
                 ctx.fillStyle = 'white';
                 ctx.fillText('Game Over', canvas.width / 2 - 70, canvas.height / 2);
-                ctx.fillText('Press R to restart', canvas.width / 2 - 100, canvas.height / 2 + 40);
+                ctx.fillText(`Final Score: ${score}`, canvas.width / 2 - 80, canvas.height / 2 + 40);
+                ctx.fillText('Press R to restart', canvas.width / 2 - 100, canvas.height / 2 + 80);
                 if (keys['r']) {
                     resetGame();
                 }
