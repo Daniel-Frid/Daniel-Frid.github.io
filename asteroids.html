@@ -132,6 +132,7 @@
                 ctx.moveTo(this.x, this.y);
                 ctx.lineTo(this.x - this.vx * 0.01, this.y - this.vy * 0.01);
                 ctx.strokeStyle = 'red';
+                ctx.lineWidth = 2;
                 ctx.stroke();
             }
         }
@@ -149,7 +150,7 @@
         let score = 0, lives = 3, wave = 1, gameOver = false;
         let lastTime = 0;
         let canShoot = true;
-        const shootCooldown = 0.5; // Seconds
+        const shootCooldown = 0.3; // Seconds
 
         // Initialize or reset the game
         function resetGame() {
@@ -194,9 +195,9 @@
                 asteroids.forEach(a => a.update(deltaTime));
                 lasers.forEach(l => l.update(deltaTime));
 
-                // Handle shooting with cooldown
-                if (keys[' '] && canShoot) {
-                    console.log('Shooting!');
+                // Handle shooting with S key
+                if (keys['s'] && canShoot) {
+                    console.log('Shooting with S key!');
                     ship.shoot();
                     canShoot = false;
                     setTimeout(() => { canShoot = true; }, shootCooldown * 1000);
@@ -264,7 +265,7 @@
                 ctx.fillText(`Score: ${score}`, 10, 30);
                 ctx.fillText(`Lives: ${lives}`, 10, 60);
                 ctx.fillText(`Wave: ${wave}`, 10, 90);
-                ctx.fillText(`Press SPACE to shoot`, canvas.width - 200, 30);
+                ctx.fillText(`Press S to shoot`, canvas.width - 160, 30);
             } else {
                 // Game over screen
                 ctx.font = '30px Arial';
